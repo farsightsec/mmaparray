@@ -29,7 +29,7 @@ setup(
   description = 'mmap file-backed arrays for Python',
   version='0.1',
   url='https://github.com/farsightsec/mmaparray',
-  download_url='https://github.com/farsightsec/mmaparray/tarball/tags/v0.1',
+  download_url='https://github.com/farsightsec/mmaparray/archive/tags/v0.1.tar.gz',
   license = 'MIT License',
   cmdclass = {'build_ext': build_ext},
   ext_modules = ext_modules,
