@@ -1,8 +1,11 @@
 MMap Arrays: Fast, Disk-Backed Arrays for Python
 ================================================
 
-(c) 2014 Farsight Security Inc.
-(c) 2010 Victor Ng
+.. |copy|   unicode:: U+000A9 .. COPYRIGHT SIGN
+
+|copy| 2014 Farsight Security Inc.
+
+|copy| 2010 Victor Ng
 
 Released under the MIT license.  See license.txt.
 
