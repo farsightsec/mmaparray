@@ -28,9 +28,11 @@ setup(
   author_email = 'stern@fsi.io',
   description = 'mmap file-backed arrays for Python',
   version='0.1',
+  url='https://github.com/farsightsec/mmaparray',
+  download_url='https://github.com/farsightsec/mmaparray/tarball/tags/v0.1',
   license = 'MIT License',
   cmdclass = {'build_ext': build_ext},
   ext_modules = ext_modules,
   test_suite = 'tests',
-  requires = [ 'six', 'Cython (>=0.13)' ]
+  requires = [ 'six', 'Cython (>=0.13)' ],
 )
