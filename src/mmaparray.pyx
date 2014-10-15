@@ -1,3 +1,4 @@
+#cython: embedsignature=True, boundscheck=False, wraparound=False
 '''
 MMap Arrays: Fast, Disk-Backed Arrays for Python
 
@@ -39,8 +40,6 @@ _typecodes = {
 
 def array(filename, typecode, size_t size=0, read_only=False, want_lock=False):
     '''
-    array(filename, typecode, size, read_only=False, want_lock=False)
-
     Constructs an MMap Array of type "typecode."
 
     Valid Typecodes:
@@ -75,9 +74,6 @@ cdef class MMapArray:
     cdef bytes _filename
 
     def __init__(self, filename, size_t size=0, read_only=False, want_lock=False):
-        """
-        __init__(self, filename, size=0, read_only=False, want_lock=False)
-        """
         if isinstance(filename, six.string_types):
             self._filename = six.b(filename)
         else:
@@ -158,9 +154,6 @@ cdef class MMapBitArray(MMapArray):
     Bit (boolean) array.
     '''
     def __init__(self, filename, size_t size=0, read_only=False, want_lock=False):
-        """
-        __init__(self, filename, size=0, read_only=False, want_lock=False)
-        """
         if not size:
             size = nmemb(filename, 1/8.0)
 
@@ -203,9 +196,6 @@ cdef class MMapInt8Array(MMapArray):
     int8_t array.
     '''
     def __init__(self, filename, size_t size=0, read_only=False, want_lock=False):
-        """
-        __init__(self, filename, size=0, read_only=False, want_lock=False)
-        """
         if not size:
             size = nmemb(filename, sizeof(int8_t))
 
@@ -236,9 +226,6 @@ cdef class MMapUint8Array(MMapArray):
     uint8_t array.
     '''
     def __init__(self, filename, size_t size=0, read_only=False, want_lock=False):
-        """
-        __init__(self, filename, size=0, read_only=False, want_lock=False)
-        """
         if not size:
             size = nmemb(filename, sizeof(uint8_t))
 
@@ -269,9 +256,6 @@ cdef class MMapInt16Array(MMapArray):
     int16_t array.
     '''
     def __init__(self, filename, size_t size=0, read_only=False, want_lock=False):
-        """
-        __init__(self, filename, size=0, read_only=False, want_lock=False)
-        """
         if not size:
             size = nmemb(filename, sizeof(int16_t))
 
@@ -302,9 +286,6 @@ cdef class MMapUint16Array(MMapArray):
     uint16_t array.
     '''
     def __init__(self, filename, size_t size=0, read_only=False, want_lock=False):
-        """
-        __init__(self, filename, size=0, read_only=False, want_lock=False)
-        """
         if not size:
             size = nmemb(filename, sizeof(uint16_t))
 
@@ -335,9 +316,6 @@ cdef class MMapInt32Array(MMapArray):
     int32_t array.
     '''
     def __init__(self, filename, size_t size=0, read_only=False, want_lock=False):
-        """
-        __init__(self, filename, size=0, read_only=False, want_lock=False)
-        """
         if not size:
             size = nmemb(filename, sizeof(int32_t))
 
@@ -368,9 +346,6 @@ cdef class MMapUint32Array(MMapArray):
     uint32_t array.
     '''
     def __init__(self, filename, size_t size=0, read_only=False, want_lock=False):
-        """
-        __init__(self, filename, size=0, read_only=False, want_lock=False)
-        """
         if not size:
             size = nmemb(filename, sizeof(uint32_t))
 
@@ -401,9 +376,6 @@ cdef class MMapInt64Array(MMapArray):
     int64_t array.
     '''
     def __init__(self, filename, size_t size=0, read_only=False, want_lock=False):
-        """
-        __init__(self, filename, size=0, read_only=False, want_lock=False)
-        """
         if not size:
             size = nmemb(filename, sizeof(int64_t))
 
@@ -434,9 +406,6 @@ cdef class MMapUint64Array(MMapArray):
     uint64_t array.
     '''
     def __init__(self, filename, size_t size=0, read_only=False, want_lock=False):
-        """
-        __init__(self, filename, size=0, read_only=False, want_lock=False)
-        """
         if not size:
             size = nmemb(filename, sizeof(uint64_t))
 
@@ -467,9 +436,6 @@ cdef class MMapFloatArray(MMapArray):
     float array.
     '''
     def __init__(self, filename, size_t size=0, read_only=False, want_lock=False):
-        """
-        __init__(self, filename, size=0, read_only=False, want_lock=False)
-        """
         if not size:
             size = nmemb(filename, sizeof(float))
 
@@ -500,9 +466,6 @@ cdef class MMapDoubleArray(MMapArray):
     double array.
     '''
     def __init__(self, filename, size_t size=0, read_only=False, want_lock=False):
-        """
-        __init__(self, filename, size=0, read_only=False, want_lock=False)
-        """
         if not size:
             size = nmemb(filename, sizeof(double))
 
