@@ -1,5 +1,5 @@
 include tests/*.py
 include license.txt
 include requirements.txt
-include README.md
+include README.rst
 include src/*.h

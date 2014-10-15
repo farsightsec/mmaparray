@@ -26,7 +26,8 @@ setup(
   name = 'mmaparray',
   author='Henry Stern',
   author_email = 'stern@fsi.io',
-  description = 'mmap file-backed arrays for Python',
+  description = 'MMap File-Backed Arrays for Python',
+  long_description = open('README.rst').read(),
   version='0.1',
   url='https://github.com/farsightsec/mmaparray',
   download_url='https://github.com/farsightsec/mmaparray/tarball/tags/v0.1',
@@ -35,4 +36,12 @@ setup(
   ext_modules = ext_modules,
   test_suite = 'tests',
   requires = [ 'six', 'Cython (>=0.13)' ],
+  classifiers = [
+    'License :: OSI Approved :: MIT License',
+    'Programming Language :: Cython',
+    'Intended Audience :: Developers',
+    'Programming Language :: Python :: 2.7',
+    'Programming Language :: Python :: 3',
+    'Topic :: Software Development :: Libraries',
+  ],
 )

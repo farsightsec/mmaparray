@@ -16,11 +16,13 @@ to reduce startup time for your program by loading data on demand, or if you
 want yet another way to share memory between processes.
 
 Compatible with Python 2.7 and Python 3.x.  Supports locked pages on
-Linux >= 2.5.37 with the `want_lock` parameter to `mmaparray.array()` and
-`mmaparray.MMap<type>Array.__init__()`.
+Linux >= 2.5.37 with the ``want_lock`` parameter to ``mmaparray.array()`` and
+``mmaparray.MMap<type>Array.__init__()``.
 
 Usage
 -----
+
+.. code:: python
 
     import mmapfile
 
