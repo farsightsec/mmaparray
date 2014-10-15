@@ -28,7 +28,7 @@ setup(
   author_email = 'stern@fsi.io',
   description = 'MMap File-Backed Arrays for Python',
   long_description = open('README.rst').read(),
-  version='0.2',
+  version='0.2.1',
   url='https://github.com/farsightsec/mmaparray',
   license = 'MIT License',
   cmdclass = {'build_ext': build_ext},
