@@ -98,11 +98,14 @@ int open_mmap_file_ro(char* filepath)
 /*
  * mmap a file descriptor in read-only mode and return a char array
  */
-void * map_file_ro(int fd, size_t filesize, int want_lock)
+void * map_file_ro(int fd, size_t filesize, int want_populate, int want_lock)
 {
     void * map;
     int flags = MAP_SHARED;
     #ifdef __linux__
+    if (want_populate) {
+        flags |= MAP_POPULATE;
+    }
     if (want_lock) {
         flags |= MAP_LOCKED;
     }
@@ -120,12 +123,15 @@ void * map_file_ro(int fd, size_t filesize, int want_lock)
 /*
  * mmap the file descriptor in r/w/ mode.  Return the char array 
  */
-void * map_file_rw(int fd, size_t filesize, int want_lock)
+void * map_file_rw(int fd, size_t filesize, int want_populate, int want_lock)
 {
     void * map;
     int flags = MAP_SHARED;
 
     #ifdef __linux__
+    if (want_populate) {
+        flags |= MAP_POPULATE;
+    }
     if (want_lock) {
         flags |= MAP_LOCKED;
     }

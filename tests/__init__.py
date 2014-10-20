@@ -79,6 +79,9 @@ class TestMMapArrayGeneric:
         for i, val in enumerate(self.array):
             self.assertEqual((i+1) % self.span + self.min_val, val)
 
+    def test_populate(self):
+        array2 = type(self.array)(self.array.name, want_populate=True)
+
 class TestMMapBitArray(unittest.TestCase, TestMMapArrayGeneric):
     setUp = setUp('o')
     
