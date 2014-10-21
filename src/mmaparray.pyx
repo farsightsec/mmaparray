@@ -88,6 +88,10 @@ cdef class MMapArray:
 
         if read_only:
             self._fd = open_mmap_file_ro(self._filename)
+
+            if os.fstat(self._fd).st_size < self._bytesize:
+                raise ValueError('Read-only file too short.  {} < {}'.format(os.fstat(self._fd).st_size, self._bytesize))
+
             self._buffer = map_file_ro(self._fd, self._bytesize, want_populate, want_lock)
         else:
             self._fd = open_mmap_file_rw(self._filename, self._bytesize)
