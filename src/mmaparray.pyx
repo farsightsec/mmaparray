@@ -105,10 +105,19 @@ cdef class MMapArray:
                 raise ValueError('fallocate is only available on Linux')
 
 
-        if want_populate and (platform.system() != 'Linux' or platform.system() == 'Linux' and pkg_resources.parse_version(platform.release()) < pkg_resources.parse_version('2.5.46')):
-            raise ValueError('MAP_POPULATE is only available on Linux >= 2.5.46')
-        if want_lock and (platform.system() != 'Linux' or platform.system() == 'Linux' and pkg_resources.parse_version(platform.release()) < pkg_resources.parse_version('2.5.37')):
-            raise ValueError('MAP_LOCKED is only available on Linux >= 2.5.37')
+        if want_populate:
+            if platform.system() != 'Linux':
+                raise ValueError('MAP_POPULATE is only available on Linux')
+
+            if pkg_resources.parse_version(platform.release()) < pkg_resources.parse_version('2.5.46'):
+                raise ValueError('MAP_POPULATE is only available on Linux >= 2.5.46')
+
+        if want_lock:
+            if platform.system() != 'Linux':
+                raise ValueError('MAP_LOCKED is only available on Linux')
+
+            if pkg_resources.parse_version(platform.release()) < pkg_resources.parse_version('2.5.37'):
+                raise ValueError('MAP_LOCKED is only available on Linux >= 2.5.37')
 
         if read_only:
             self._fd = open_mmap_file_ro(self._filename)
