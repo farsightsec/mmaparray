@@ -6,13 +6,27 @@ MMap Arrays Test Suite
 Released under the MIT license.  See license.txt.
 '''
 
+import ctypes
 import math
 import unittest
-import tempfile
 import os
+import platform
+import tempfile
 
 import mmaparray
+import pkg_resources
 import six
+
+_can_populate = platform.system() == 'Linux' and pkg_resources.parse_version(platform.release()) >= pkg_resources.parse_version('2.5.46')
+
+_can_fallocate = False
+libc = ctypes.cdll.LoadLibrary(ctypes.util.find_library('c'))
+if libc._name:
+    try:
+        gnu_get_libc_version = libc.gnu_get_libc_version
+        _can_fallocate = True
+    except AttributeError:
+        pass
 
 def setUp(typecode, min_val=0, max_val=0, size=1024):
     def fn(self):
@@ -79,9 +93,11 @@ class TestMMapArrayGeneric:
         for i, val in enumerate(self.array):
             self.assertEqual((i+1) % self.span + self.min_val, val)
 
+    @unittest.skipUnless(_can_populate, 'MAP_POPULATE not supported on this platform')
     def test_populate(self):
         type(self.array)(self.array.name, want_populate=True)
 
+    @unittest.skipUnless(_can_fallocate, 'fallocate not supported on this platform')
     def test_fallocate(self):
         arrayfile = tempfile.NamedTemporaryFile(prefix='mmapfile_test')
         array2 = type(self.array)(arrayfile.name, 1000, want_fallocate=True)
