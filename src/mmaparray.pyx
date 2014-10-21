@@ -9,6 +9,8 @@ MMap Arrays: Fast, Disk-Backed Arrays for Python
 cimport cython
 from libc.stdint cimport *
 
+import ctypes
+import ctypes.util
 import os
 import platform
 
@@ -19,7 +21,7 @@ cdef extern from "mmap_writer.h" nogil:
     cdef void * map_file_ro(int fd, size_t filesize, int want_populate, int want_lock) except NULL
     cdef void * map_file_rw(int fd, size_t filesize, int want_populate, int want_lock) except NULL
     cdef int open_mmap_file_ro(char * filepath) except -1
-    cdef int open_mmap_file_rw(char * filename, size_t bytesize) except -1
+    cdef int open_mmap_file_rw(char * filename, size_t bytesize, int want_fallocate) except -1
     cdef int close_file(int fd) except -1
     cdef int flush_to_disk(int fd) except -1
     cdef int unmap_file(void * map, int filesize) except -1
@@ -38,7 +40,7 @@ _typecodes = {
         'd' : MMapDoubleArray,
         }
 
-def array(filename, typecode, size_t size=0, read_only=False, want_populate=False, want_lock=False):
+def array(filename, typecode, size_t size=0, read_only=False, want_fallocate=False, want_populate=False, want_lock=False):
     '''
     Constructs an MMap Array of type "typecode."
 
@@ -56,7 +58,7 @@ def array(filename, typecode, size_t size=0, read_only=False, want_populate=Fals
     'd': double
     '''
     if typecode in _typecodes:
-        return _typecodes[typecode](filename, size, read_only, want_populate, want_lock)
+        return _typecodes[typecode](filename, size, read_only, want_fallocate, want_populate, want_lock)
     else:
         raise ValueError('Invalid typecode: \'{}\''.format(typecode))
 
@@ -73,13 +75,35 @@ cdef class MMapArray:
     cdef int _fd
     cdef bytes _filename
 
-    def __init__(self, filename, size_t size=0, read_only=False, want_populate=False, want_lock=False):
+    def __init__(self, filename, size_t size=0, read_only=False, want_fallocate=False, want_populate=False, want_lock=False):
         if isinstance(filename, six.string_types):
             self._filename = six.b(filename)
         else:
             self._filename = filename
 
         self._bytesize = size
+
+        if want_fallocate:
+            if platform.system() == 'Linux':
+                if pkg_resources.parse_version(platform.release()) < pkg_resources.parse_version('2.6.23'):
+                    raise ValueError('fallocate is only available on Linux >= 2.6.23')
+
+                if platform.libc_ver()[0] != 'glibc':
+                    raise ValueError('fallocate is only available on glibc')
+
+                libc = ctypes.cdll.LoadLibrary(ctypes.util.find_library('c'))
+                gnu_get_libc_version = libc.gnu_get_libc_version
+                gnu_get_libc_version.restype = ctypes.c_char_p
+
+                libc_version = gnu_get_libc_version()
+                if six.PY3:
+                    libc_version = libc_version.decode('ascii')
+
+                if pkg_resources.parse_version(libc_version) < pkg_resources.parse_version('2.10'):
+                    raise ValueError('fallocate is only available on glibc >= 2.10')
+            else:
+                raise ValueError('fallocate is only available on Linux')
+
 
         if want_populate and (platform.system() != 'Linux' or platform.system() == 'Linux' and pkg_resources.parse_version(platform.release()) < pkg_resources.parse_version('2.5.46')):
             raise ValueError('MAP_POPULATE is only available on Linux >= 2.5.46')
@@ -94,7 +118,7 @@ cdef class MMapArray:
 
             self._buffer = map_file_ro(self._fd, self._bytesize, want_populate, want_lock)
         else:
-            self._fd = open_mmap_file_rw(self._filename, self._bytesize)
+            self._fd = open_mmap_file_rw(self._filename, self._bytesize, want_fallocate)
             self._buffer = map_file_rw(self._fd, self._bytesize, want_populate, want_lock)
 
     def __dealloc__(self):
@@ -105,6 +129,8 @@ cdef class MMapArray:
             return self._filename
         elif name == 'fd':
             return self._fd
+        elif name == 'bytesize':
+            return self._bytesize
         else:
             raise AttributeError("'{}' object has no attribute '{}'".format(
                 self.__class__.__name__, name))
@@ -159,7 +185,7 @@ cdef class MMapBitArray(MMapArray):
     '''
     Bit (boolean) array.
     '''
-    def __init__(self, filename, size_t size=0, read_only=False, want_populate=False, want_lock=False):
+    def __init__(self, filename, size_t size=0, read_only=False, want_fallocate=False, want_populate=False, want_lock=False):
         if not size:
             size = nmemb(filename, 1/8.0)
 
@@ -167,7 +193,7 @@ cdef class MMapBitArray(MMapArray):
         if size % 8:
             bytesize += 1
 
-        super(MMapBitArray, self).__init__(filename, bytesize, read_only, want_populate, want_lock)
+        super(MMapBitArray, self).__init__(filename, bytesize, read_only, want_fallocate, want_populate, want_lock)
         self._size = size
 
     def __setitem__(self, size_t key, value):
@@ -201,12 +227,12 @@ cdef class MMapInt8Array(MMapArray):
     '''
     int8_t array.
     '''
-    def __init__(self, filename, size_t size=0, read_only=False, want_populate=False, want_lock=False):
+    def __init__(self, filename, size_t size=0, read_only=False, want_fallocate=False, want_populate=False, want_lock=False):
         if not size:
             size = nmemb(filename, sizeof(int8_t))
 
         super(MMapInt8Array, self).__init__(filename,
-                size * sizeof(int8_t), read_only, want_populate, want_lock)
+                size * sizeof(int8_t), read_only, want_fallocate, want_populate, want_lock)
         self._size = size
 
     def __setitem__(self, size_t key, int8_t value):
@@ -231,12 +257,12 @@ cdef class MMapUint8Array(MMapArray):
     '''
     uint8_t array.
     '''
-    def __init__(self, filename, size_t size=0, read_only=False, want_populate=False, want_lock=False):
+    def __init__(self, filename, size_t size=0, read_only=False, want_fallocate=False, want_populate=False, want_lock=False):
         if not size:
             size = nmemb(filename, sizeof(uint8_t))
 
         super(MMapUint8Array, self).__init__(filename,
-                size * sizeof(uint8_t), read_only, want_populate, want_lock)
+                size * sizeof(uint8_t), read_only, want_fallocate, want_populate, want_lock)
         self._size = size
 
     def __setitem__(self, size_t key, uint8_t value):
@@ -261,12 +287,12 @@ cdef class MMapInt16Array(MMapArray):
     '''
     int16_t array.
     '''
-    def __init__(self, filename, size_t size=0, read_only=False, want_populate=False, want_lock=False):
+    def __init__(self, filename, size_t size=0, read_only=False, want_fallocate=False, want_populate=False, want_lock=False):
         if not size:
             size = nmemb(filename, sizeof(int16_t))
 
         super(MMapInt16Array, self).__init__(filename,
-                size*sizeof(int16_t), read_only, want_populate, want_lock)
+                size*sizeof(int16_t), read_only, want_fallocate, want_populate, want_lock)
         self._size = size
 
     def __setitem__(self, size_t key, int16_t value):
@@ -291,12 +317,12 @@ cdef class MMapUint16Array(MMapArray):
     '''
     uint16_t array.
     '''
-    def __init__(self, filename, size_t size=0, read_only=False, want_populate=False, want_lock=False):
+    def __init__(self, filename, size_t size=0, read_only=False, want_fallocate=False, want_populate=False, want_lock=False):
         if not size:
             size = nmemb(filename, sizeof(uint16_t))
 
         super(MMapUint16Array, self).__init__(filename,
-                size*sizeof(uint16_t), read_only, want_populate, want_lock)
+                size*sizeof(uint16_t), read_only, want_fallocate, want_populate, want_lock)
         self._size = size
 
     def __setitem__(self, size_t key, uint16_t value):
@@ -321,12 +347,12 @@ cdef class MMapInt32Array(MMapArray):
     '''
     int32_t array.
     '''
-    def __init__(self, filename, size_t size=0, read_only=False, want_populate=False, want_lock=False):
+    def __init__(self, filename, size_t size=0, read_only=False, want_fallocate=False, want_populate=False, want_lock=False):
         if not size:
             size = nmemb(filename, sizeof(int32_t))
 
         super(MMapInt32Array, self).__init__(filename,
-                size*sizeof(int32_t), read_only, want_populate, want_lock)
+                size*sizeof(int32_t), read_only, want_fallocate, want_populate, want_lock)
         self._size = size
 
     def __setitem__(self, size_t key, int32_t value):
@@ -351,12 +377,12 @@ cdef class MMapUint32Array(MMapArray):
     '''
     uint32_t array.
     '''
-    def __init__(self, filename, size_t size=0, read_only=False, want_populate=False, want_lock=False):
+    def __init__(self, filename, size_t size=0, read_only=False, want_fallocate=False, want_populate=False, want_lock=False):
         if not size:
             size = nmemb(filename, sizeof(uint32_t))
 
         super(MMapUint32Array, self).__init__(filename,
-                size*sizeof(uint32_t), read_only, want_populate, want_lock)
+                size*sizeof(uint32_t), read_only, want_fallocate, want_populate, want_lock)
         self._size = size
 
     def __setitem__(self, size_t key, uint32_t value):
@@ -381,12 +407,12 @@ cdef class MMapInt64Array(MMapArray):
     '''
     int64_t array.
     '''
-    def __init__(self, filename, size_t size=0, read_only=False, want_populate=False, want_lock=False):
+    def __init__(self, filename, size_t size=0, read_only=False, want_fallocate=False, want_populate=False, want_lock=False):
         if not size:
             size = nmemb(filename, sizeof(int64_t))
 
         super(MMapInt64Array, self).__init__(filename,
-                size*sizeof(int64_t), read_only, want_populate, want_lock)
+                size*sizeof(int64_t), read_only, want_fallocate, want_populate, want_lock)
         self._size = size
 
     def __setitem__(self, size_t key, int64_t value):
@@ -411,12 +437,12 @@ cdef class MMapUint64Array(MMapArray):
     '''
     uint64_t array.
     '''
-    def __init__(self, filename, size_t size=0, read_only=False, want_populate=False, want_lock=False):
+    def __init__(self, filename, size_t size=0, read_only=False, want_fallocate=False, want_populate=False, want_lock=False):
         if not size:
             size = nmemb(filename, sizeof(uint64_t))
 
         super(MMapUint64Array, self).__init__(filename,
-                size*sizeof(uint64_t), read_only, want_populate, want_lock)
+                size*sizeof(uint64_t), read_only, want_fallocate, want_populate, want_lock)
         self._size = size
 
     def __setitem__(self, size_t key, uint64_t value):
@@ -441,12 +467,12 @@ cdef class MMapFloatArray(MMapArray):
     '''
     float array.
     '''
-    def __init__(self, filename, size_t size=0, read_only=False, want_populate=False, want_lock=False):
+    def __init__(self, filename, size_t size=0, read_only=False, want_fallocate=False, want_populate=False, want_lock=False):
         if not size:
             size = nmemb(filename, sizeof(float))
 
         super(MMapFloatArray, self).__init__(filename,
-                size*sizeof(float), read_only, want_populate, want_lock)
+                size*sizeof(float), read_only, want_fallocate, want_populate, want_lock)
         self._size = size
 
     def __setitem__(self, size_t key, float value):
@@ -471,12 +497,12 @@ cdef class MMapDoubleArray(MMapArray):
     '''
     double array.
     '''
-    def __init__(self, filename, size_t size=0, read_only=False, want_populate=False, want_lock=False):
+    def __init__(self, filename, size_t size=0, read_only=False, want_fallocate=False, want_populate=False, want_lock=False):
         if not size:
             size = nmemb(filename, sizeof(double))
 
         super(MMapDoubleArray, self).__init__(filename,
-                size*sizeof(double), read_only, want_populate, want_lock)
+                size*sizeof(double), read_only, want_fallocate, want_populate, want_lock)
         self._size = size
 
     def __setitem__(self, size_t key, double value):

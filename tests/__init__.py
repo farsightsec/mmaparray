@@ -82,6 +82,11 @@ class TestMMapArrayGeneric:
     def test_populate(self):
         array2 = type(self.array)(self.array.name, want_populate=True)
 
+    def test_fallocate(self):
+        arrayfile = tempfile.NamedTemporaryFile(prefix='mmapfile_test')
+        array2 = type(self.array)(arrayfile.name, 1000, want_fallocate=True)
+        self.assertEqual(os.fstat(array2.fd).st_size, array2.bytesize)
+
 class TestMMapBitArray(unittest.TestCase, TestMMapArrayGeneric):
     setUp = setUp('o')
     

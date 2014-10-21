@@ -20,7 +20,7 @@
  *
  * Return the file descriptor to the file
  */
-int open_mmap_file_rw(char* filename, size_t bytesize)
+int open_mmap_file_rw(char* filename, size_t bytesize, int want_fallocate)
 {
     int fd;
     int result;
@@ -47,6 +47,18 @@ int open_mmap_file_rw(char* filename, size_t bytesize)
     }
 
     if (stat.st_size < bytesize) {
+        #ifdef __linux__
+        if (want_fallocate) {
+            if (fallocate(fd, 0, 0, bytesize)) {
+                PyErr_SetFromErrnoWithFilename(PyExc_OSError,
+                                   "Error calling fallocate");
+                close(fd);
+                return -1;
+	    }
+            return fd;
+        }
+        #endif // ifdef __linux__
+
         /* Stretch the file size to the size of the (mmapped) array of
          * ints
          * */

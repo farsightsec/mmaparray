@@ -8,7 +8,7 @@
 #include <stdint.h>
 #include <stddef.h>
 
-int open_mmap_file_rw(char* filename, size_t bytesize);
+int open_mmap_file_rw(char* filename, size_t bytesize, int want_fallocate);
 int open_mmap_file_ro(char* filepath);
 void * map_file_rw(int fd, size_t filesize, int want_populate, int want_lock);
 void * map_file_ro(int fd, size_t filesize, int want_populate, int want_lock);
