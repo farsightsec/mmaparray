@@ -14,7 +14,7 @@ import os
 
 ext_modules=[ 
         Extension("mmaparray", 
-            extra_compile_args=['-std=gnu99', '-O2', '-D_LARGEFILE64_SOURCE'],
+            extra_compile_args=['-std=gnu99', '-O2', '-D_LARGEFILE64_SOURCE', '-D_GNU_SOURCE'],
             sources = [
                 "src/mmaparray.pyx",
                 'src/mmap_writer.c',],
