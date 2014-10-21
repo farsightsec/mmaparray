@@ -21,6 +21,8 @@ import six
 
 _can_populate = platform.system() == 'Linux' and pkg_resources.parse_version(platform.release()) >= pkg_resources.parse_version('2.5.46')
 
+_can_lock = platform.system() == 'Linux' and pkg_resources.parse_version(platform.release()) >= pkg_resources.parse_version('2.5.37')
+
 _can_fallocate = False
 libc = ctypes.cdll.LoadLibrary(ctypes.util.find_library('c'))
 if platform.system() == 'Linux' and pkg_resources.parse_version(platform.release()) >= pkg_resources.parse_version('2.6.23'):
@@ -104,6 +106,18 @@ class TestMMapArrayGeneric:
     @unittest.skipUnless(_can_populate, 'MAP_POPULATE not supported on this platform')
     def test_populate(self):
         type(self.array)(self.array.name, want_populate=True)
+
+    @unittest.skipUnless(_can_lock, 'MAP_LOCK not supported on this platform')
+    def test_lock(self):
+        try:
+            type(self.array)(self.array.name, want_lock=True)
+        except OSError as e:
+            # This can be raised if your ulimit is too low for max locked
+            # memory.
+            if e.errno == errno.EAGAIN:
+                warnings.warn(str(e))
+            else:
+                raise
 
     @unittest.skipUnless(_can_fallocate, 'fallocate not supported on this platform')
     def test_fallocate(self):
