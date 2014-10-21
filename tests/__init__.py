@@ -7,11 +7,13 @@ Released under the MIT license.  See license.txt.
 '''
 
 import ctypes
+import errno
 import math
 import unittest
 import os
 import platform
 import tempfile
+import warnings
 
 import mmaparray
 import pkg_resources
@@ -21,10 +23,16 @@ _can_populate = platform.system() == 'Linux' and pkg_resources.parse_version(pla
 
 _can_fallocate = False
 libc = ctypes.cdll.LoadLibrary(ctypes.util.find_library('c'))
-if libc._name:
+if platform.system() == 'Linux' and pkg_resources.parse_version(platform.release()) >= pkg_resources.parse_version('2.6.23'):
     try:
         gnu_get_libc_version = libc.gnu_get_libc_version
-        _can_fallocate = True
+        gnu_get_libc_version.restype = ctypes.c_char_p
+
+        libc_version = gnu_get_libc_version()
+        if six.PY3:
+            libc_version = libc_version.decode('ascii')
+
+        _can_fallocate = pkg_resources.parse_version(libc_version) >= pkg_resources.parse_version('2.10')
     except AttributeError:
         pass
 
@@ -99,9 +107,18 @@ class TestMMapArrayGeneric:
 
     @unittest.skipUnless(_can_fallocate, 'fallocate not supported on this platform')
     def test_fallocate(self):
-        arrayfile = tempfile.NamedTemporaryFile(prefix='mmapfile_test')
-        array2 = type(self.array)(arrayfile.name, 1000, want_fallocate=True)
-        self.assertEqual(os.fstat(array2.fd).st_size, array2.bytesize)
+        try:
+            arrayfile = tempfile.NamedTemporaryFile(prefix='mmapfile_test')
+            array2 = type(self.array)(arrayfile.name, 1000, want_fallocate=True)
+            self.assertEqual(os.fstat(array2.fd).st_size, array2.bytesize)
+        except OSError as e:
+            # This can be raised if your filesystem does not support
+            # fallocate, so we'll eat it if it happens.
+            if e.errno == errno.EOPNOTSUPP:
+                warnings.warn(str(e))
+            else:
+                raise
+
 
 class TestMMapBitArray(unittest.TestCase, TestMMapArrayGeneric):
     setUp = setUp('o')
